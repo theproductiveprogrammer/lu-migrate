@@ -1,4 +1,5 @@
 'use strict'
+const crypto = require('crypto')
 const nacl = require('tweetnacl')
 const naclUtil = require('tweetnacl-util')
 const scrypt = require('scrypt')
@@ -8,9 +9,8 @@ const scrypt = require('scrypt')
  * to use `nacl`.
  */
 module.exports = {
-    password2key: password2key,
-    createNonce: createNonce,
-    createSalt: createSalt,
+    password2keyv1: password2keyv1,
+    password2keyv2: password2keyv2,
     encrypt: encrypt,
     decrypt: decrypt,
 }
@@ -33,10 +33,25 @@ const latestScryptOptions = {
     dkLen: nacl.secretbox.keyLength,
     encoding: 'binary'
 };
-function password2key(salt, password, cb) {
+function password2keyv1(salt, password, cb) {
     if(!password) return cb(`Password not provided`)
     scrypt.hash(password, latestScryptOptions, nacl.secretbox.keyLength, salt, cb)
 }
+
+
+/*      problem/
+ * Because the `scrypt` library (and it's alternative - the `bcrypt`
+ * library) is hard to install in windows, we need to use the base
+ * crypto package provided with node to do password key stretching.
+ *
+ *      way/
+ * We use the standard `pbkdf2()` function with the given salt to
+ * generate the key.
+ */
+function password2keyv2(salt, password, cb) {
+    crypto.pbkdf2(password, salt, 100000, nacl.secretbox.keyLength, 'sha512', cb)
+}
+
 
 function createNonce() {
     return naclUtil.encodeBase64(nacl.randomBytes(nacl.secretbox.nonceLength))

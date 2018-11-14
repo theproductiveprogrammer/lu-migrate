@@ -29,31 +29,49 @@ function main() {
 }
 
 /*      outcome/
- * Load the given account file and migrate it to version 2
+ * Load the given account file and migrate it from version 1 to version 2
  */
 function migrate2v2(acc) {
+    migrateFromTo(crypt.password2keyv1, crypt.password2keyv2,
+        'v1', 'v2',
+        (ver) => { return !ver || ver == 'v1' },
+        acc)
+}
+
+/*      outcome/
+ * Load the given account file and migrate it from version 2 to version 1
+ */
+function migrate2v1(acc) {
+    migrateFromTo(crypt.password2keyv2, crypt.password2keyv1,
+        'v2', 'v1',
+        (ver) => { return ver == 'v2' },
+        acc)
+}
+
+function migrateFromTo(fromkeyfn, tokeyfn, versionFrom, versionTo, versionCheck, acc) {
     fs.readFile(acc, 'utf8', (err, data) => {
         if(err) {
-            console.error(`Cannot read ${acc} as account file`)
+            console.error(`Cannot load as account: ${acc}`)
             console.error(err)
         } else {
             try {
                 data = JSON.parse(data)
-                migrate2_2(data)
+                migrate2_1(data)
             } catch(e) {
                 console.error(e)
-                console.error(`Unable to understand ${acc} as a wallet account`)
+                console.error(`Unable to understand as a wallet account: ${acc}`)
             }
         }
     })
 
     /*      outcome/
-     * Check that the data is a valid v1.0.0 file, get the password and
-     * decrypt the secret key, then re-encrypt it as a valid v2.0.0 file.
+     * Check that the data is a valid file for the given version, get
+     * the password and decrypt the secret key, then ask for a new
+     * password and re-encrypt it as the new format.
      */
-    function migrate2_2(data) {
-        if(data.version && data.version != 'v1') {
-            console.error(`${acc} is not a v1.0.0 file`)
+    function migrate2_1(data) {
+        if(!versionCheck(data.version)){
+            console.error(`Not a ${versionFrom} file: ${acc}`)
             return
         }
         if(!data.label ||
@@ -62,23 +80,35 @@ function migrate2v2(acc) {
             !data.nonce ||
             !data.salt ||
             !data.secret) {
-            console.error(`${acc} is not a v1.0.0 file`)
+            console.error(`Missing account data: ${acc}`)
             return
         }
 
-        withPassword((pw) => {
+        withPassword('Password', (pw) => {
             if(!pw) {
                 console.error(`Please provide the account password`)
                 return
             }
-            crypt.password2key(data.salt, pw, (err, key) => {
+            fromkeyfn(data.salt, pw, (err, key) => {
                 if(err) console.error(err)
                 else {
                     let secret = crypt.decrypt(data.secret, data.nonce, key)
                     if(!secret) console.error(`Incorrect password`)
                     else {
-                        // TODO:
-                        console.log(secret)
+                        withPassword('New Password (leave empty to use same password)', (pw2) => {
+                            if(!pw2) pw2 = pw
+                            tokeyfn(data.salt, pw, (err, key2) => {
+                                if(err) console.error(err)
+                                else {
+                                    data.version = versionTo
+                                    data.secret = crypt.encrypt(secret, data.nonce, key2)
+                                    fs.writeFile(acc, JSON.stringify(data,null,2), 'utf-8', (err) => {
+                                        if(err) console.error(err)
+                                        else console.log(`Migrated`)
+                                    })
+                                }
+                            })
+                        })
                     }
                 }
             })
@@ -88,15 +118,12 @@ function migrate2v2(acc) {
     }
 }
 
-function migrate2v1() {
-}
-
 /*      outcome/
  * Prompt the user for a password. Provide it to the callback.
  */
-function withPassword(cb) {
+function withPassword(prompt, cb) {
     read({
-        prompt: "Password:",
+        prompt: `${prompt}:`,
         silent: true,
     }, (err,pw) => {
         if(err) cb()
