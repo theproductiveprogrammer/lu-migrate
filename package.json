@@ -1,0 +1,17 @@
+{
+  "name": "lu-migrate",
+  "version": "1.0.0",
+  "description": "Migrate Luminate Wallets from old (< 2.0.0) version to 2.0.0+ version",
+  "main": "index.js",
+  "author": "charles.lobo@gmail.com",
+  "license": "MIT",
+  "scripts": {
+    "start": "node ."
+  },
+  "dependencies": {
+    "read": "^1.0.7",
+    "scrypt": "^6.0.3",
+    "tweetnacl": "^1.0.0",
+    "tweetnacl-util": "^0.15.0"
+  }
+}

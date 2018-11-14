@@ -1,1 +1,4 @@
 .*
+*.stellar
+_tmp/
+node_modules/
