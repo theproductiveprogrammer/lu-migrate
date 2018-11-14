@@ -97,7 +97,7 @@ function migrateFromTo(fromkeyfn, tokeyfn, versionFrom, versionTo, versionCheck,
                     else {
                         withPassword('New Password (leave empty to use same password)', (pw2) => {
                             if(!pw2) pw2 = pw
-                            tokeyfn(data.salt, pw, (err, key2) => {
+                            tokeyfn(data.salt, pw2, (err, key2) => {
                                 if(err) console.error(err)
                                 else {
                                     data.version = versionTo
