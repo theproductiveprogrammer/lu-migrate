@@ -33,7 +33,7 @@ works fine but older users now need to migrate their wallets from the
 old `scrypt` version to the new `core crypto` version.
 
 
-## Using Lu-minate
+## Using Lu-migrate
 
 1. Find your existing `Luminate` wallet. This is generally in the hidden
    `.wallet/` subdirectory. If you changed the wallet path, please use
